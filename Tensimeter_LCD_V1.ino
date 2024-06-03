@@ -35,8 +35,6 @@ void setup() {
 
 }
 
-
-
 void loop() {
   // Baca input serial
   while (Serial.available()) {
