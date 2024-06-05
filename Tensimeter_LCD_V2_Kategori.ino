@@ -85,7 +85,9 @@ void loop() {
 
   // Tentukan kategori tekanan darah
   String kategori;
-  if (hexSys < 120 && hexDias < 80) {
+  if (hexSys < 0 || hexDias < 0) {
+    kategori = "Tidak Terbaca";
+  } else if (hexSys < 120 && hexDias < 80) {
     kategori = "Normal";
   } else if ((hexSys >= 120 && hexSys < 140) || (hexDias >= 80 && hexDias < 90)) {
     kategori = "Pra-HTN";
@@ -96,7 +98,6 @@ void loop() {
   } else {
     kategori = "Unknown";
   }
-
   // Cetak ke Serial Monitor
   Serial.print("Sistolik: ");
   Serial.print(hexSys);
