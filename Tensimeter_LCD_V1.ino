@@ -21,7 +21,7 @@ char discard;
 int i, j = 0;
 char final_buff[64];
 
-int hexSys, hexDias, hexBPM;
+int hexSys, hexDias;
 
 void setup() {
   // Inisialisasi Serial Monitor
@@ -31,11 +31,12 @@ void setup() {
   lcd.backlight();
   lcd.clear();
 
-   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  // Inisialisasi Blynk
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
+  // Tambahkan pesan debug untuk memeriksa apakah sistem sudah berjalan
+  Serial.println("Sistem siap.");
 }
-
-
 
 void loop() {
   // Baca input serial
@@ -101,37 +102,52 @@ void loop() {
     hexDias += (final_buff[4] - '0');
   }
 
-  //if (final_buff[9] > '9') {
-    //hexBPM = (final_buff[9] - '7') * 16;
-  //} else {
-    //hexBPM = (final_buff[9] - '0') * 16;
-  //}
-  //if (final_buff[10] > '9') {
-    //hexBPM += (final_buff[10] - '7');
-  //} else {
-    //hexBPM += (final_buff[10] - '0');
-  //}
+  // Tentukan kategori tekanan darah
+  String kategori;
+  if (hexSys < 0 || hexDias < 0) {
+    kategori = "Tidak Terbaca";
+  } else if (hexSys < 120 && hexDias < 80) {
+    kategori = "Normal";
+  } else if ((hexSys >= 120 && hexSys < 140) || (hexDias >= 80 && hexDias < 90)) {
+    kategori = "Pra-HTN";
+  } else if ((hexSys >= 140 && hexSys < 160) || (hexDias >= 90 && hexDias < 100)) {
+    kategori = "HTN T1";
+  } else if (hexSys >= 160 || hexDias >= 100) {
+    kategori = "HTN T2";
+  } else {
+    kategori = "Unknown";
+  }
 
   // Cetak ke Serial Monitor
+  Serial.print("Sistolik: ");
   Serial.print(hexSys);
-  Serial.print("          ");
+  Serial.print(" Diastolik: ");
   Serial.print(hexDias);
-  Serial.print("          ");
-  //Serial.println(hexBPM);
+  Serial.print(" Kategori: ");
+  Serial.println(kategori);
 
-  // Cetak ke LCD
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("MmHg :");
-  lcd.print(hexSys);
-  lcd.setCursor(9, 0);
-  lcd.print("/");
-  lcd.print(hexDias);
+  // Cetak ke LCD hanya jika data telah berubah
+  static int prevHexSys = -1;
+  static int prevHexDias = -1;
+
+  if (hexSys != prevHexSys || hexDias != prevHexDias) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("MmHg :");
+    lcd.print(hexSys);
+    lcd.setCursor(9, 0);
+    lcd.print("/");
+    lcd.print(hexDias);
+    lcd.setCursor(0, 1);
+    lcd.print(kategori);
+
+    prevHexSys = hexSys;
+    prevHexDias = hexDias;
+  }
+
+  // Kirim data ke Blynk
   Blynk.virtualWrite(V8, hexDias);
   Blynk.virtualWrite(V10, hexSys);
-  // lcd.setCursor(0, 1);
-  // lcd.print("BPM:");
-  // lcd.print(hexBPM);
 
   Serial.println();
   Blynk.run();
