@@ -1,0 +1,110 @@
+#include <DFRobot_MAX30102.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+DFRobot_MAX30102 particleSensor;
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Address LCD I2C dan ukuran (16x2)
+
+const int buttonPin = D6; // Pin untuk push button
+bool systemOn = false; // Status sistem (ON/OFF)
+unsigned long lastDebounceTime = 0; // Waktu debounce terakhir
+unsigned long debounceDelay = 50; // Waktu debounce
+
+/*
+Macro definition options in sensor configuration
+sampleAverage: SAMPLEAVG_1 SAMPLEAVG_2 SAMPLEAVG_4
+               SAMPLEAVG_8 SAMPLEAVG_16 SAMPLEAVG_32
+ledMode:       MODE_REDONLY  MODE_RED_IR  MODE_MULTILED
+sampleRate:    PULSEWIDTH_69 PULSEWIDTH_118 PULSEWIDTH_215 PULSEWIDTH_411
+pulseWidth:    SAMPLERATE_50 SAMPLERATE_100 SAMPLERATE_200 SAMPLERATE_400
+               SAMPLERATE_800 SAMPLERATE_1000 SAMPLERATE_1600 SAMPLERATE_3200
+adcRange:      ADCRANGE_2048 ADCRANGE_4096 ADCRANGE_8192 ADCRANGE_16384
+*/
+void setup()
+{
+  // Init serial
+  Serial.begin(115200);
+  
+  // Init LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Initializing...");
+
+  // Init sensor
+  while (!particleSensor.begin()) {
+    Serial.println("MAX30102 was not found");
+    lcd.setCursor(0, 1);
+    lcd.print("Sensor not found");
+    delay(1000);
+  }
+
+  // Sensor configuration
+  particleSensor.sensorConfiguration(/*ledBrightness=*/50, /*sampleAverage=*/SAMPLEAVG_4, \
+                        /*ledMode=*/MODE_MULTILED, /*sampleRate=*/SAMPLERATE_100, \
+                        /*pulseWidth=*/PULSEWIDTH_411, /*adcRange=*/ADCRANGE_16384);
+  
+  pinMode(buttonPin, INPUT_PULLUP); // Mengatur pin button sebagai input pull-up
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Silahkan tekan");
+  lcd.setCursor(0, 1);
+  lcd.print("tombol");
+}
+
+int32_t heartRate; // Heart-rate
+int8_t heartRateValid; // Flag to display if heart-rate calculation is valid 
+
+void loop()
+{
+  // Membaca status button
+  int buttonState = digitalRead(buttonPin);
+  if (buttonState == LOW) {
+    unsigned long currentTime = millis();
+    if ((currentTime - lastDebounceTime) > debounceDelay) {
+      lastDebounceTime = currentTime;
+      systemOn = !systemOn; // Toggle system state
+      if (systemOn) {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("System ON");
+        delay(1000);
+      } else {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("System OFF");
+        delay(1000);
+        return; // Stop further execution if the system is turned off
+      }
+    }
+  }
+
+  if (systemOn) {
+    Serial.println(F("Wait about four seconds"));
+    particleSensor.heartrateAndOxygenSaturation(NULL, NULL, /**heartRate=*/&heartRate, /**heartRateValid=*/&heartRateValid);
+
+    // Print result to Serial
+    Serial.print(F("heartRate="));
+    Serial.print(heartRate, DEC);
+    Serial.print(F(", heartRateValid="));
+    Serial.println(heartRateValid, DEC);
+    
+    // Display result on LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    if (heartRateValid) {
+      lcd.setCursor(0, 0);
+      lcd.print("Tunggu....");
+      delay(3000);
+      lcd.clear();
+      lcd.print("HR: ");
+      lcd.print(heartRate);
+      lcd.print(" BPM");
+    } else {
+      lcd.print("Tempelkan Jari");
+    }
+    
+    delay(4000); // Wait about four seconds
+  }
+}
