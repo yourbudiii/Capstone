@@ -21,7 +21,7 @@ char discard;
 int i, j = 0;
 char final_buff[64];
 
-int hexSys, hexDias, hexBPM;
+int hexSys, hexDias;
 
 void setup() {
   // Inisialisasi Serial Monitor
@@ -29,18 +29,6 @@ void setup() {
   // Inisialisasi LCD
   lcd.init();
   lcd.backlight();
-  lcd.clear();
-
-  // Tampilkan pesan awal pada LCD
-  lcd.setCursor(0, 0);
-  lcd.print("Pengukuran");
-  lcd.setCursor(0, 1);
-  lcd.print("Tekanan Darah");
-  delay(2000);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Akan Dimulai...");
-  delay(500);
   lcd.clear();
 
   // Inisialisasi Blynk
